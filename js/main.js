@@ -6,11 +6,12 @@ window.onload = function(){
         //Canvas / WebGL
         width: 800,
         height: 600,
-        scene: [Scene01], //pode passar várias cenas e carregá-las dinamicamente durante o jogo
+        scene: [Preload, StartScene, Scene01], //pode passar várias cenas e carregá-las dinamicamente durante o jogo
         physics: { //configuração de físicas
             default: 'arcade', //nome do motor
             arcade: {
-                gravity: {y: 1000}
+                gravity: {y: 1000},
+                debug: true
             }
         },
         pixelArt: true //diz que está utilizando pixel arte para não dar o blur nas imagens aumentadas 

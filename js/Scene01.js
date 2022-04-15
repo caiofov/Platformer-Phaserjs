@@ -3,14 +3,6 @@ class Scene01 extends Phaser.Scene{
         super('Scene01') //nome que vamos nos referir a essa cena
     }
 
-    preload(){ //carregamento dos assets
-        this.load.image('sky', '../assets/img/sky.png')
-        this.load.image('platform', '../assets/img/platform.png')
-        
-        this.load.spritesheet('player', '../assets/img/player.png', {frameWidth:32, frameHeight:32}) //ultimos parametros: dimensoes de cada sprite
-        this.load.spritesheet('coin', '../assets/img/coin.png', {frameWidth:36, frameHeight:40})
-
-    } 
     create(){ //criação e configuraçao das variaveis e recursos básicos
         this.sky = this.add.image(0,0,'sky').setOrigin(0,0) //posição e nome da imagem
         this.sky.displayWidth = 1000
@@ -23,15 +15,9 @@ class Scene01 extends Phaser.Scene{
 
         this.player.canJump = true //diz se o player pode ou não pular
 
-        this.anims.create({
-            key:'walk', //nome que tenha a ver com a animação
-            frames: this.anims.generateFrameNumbers('player', {
-                start: 0,
-                end: 6
-            }),//identificar os frames da spritesheet
-            frameRate: 8,
-            repeat: -1 //infinito
-        })
+        this.player.body.setSize(16,25)
+
+        
 
         this.control = this.input.keyboard.createCursorKeys() //cria um objeto que vai controlar os eventos disparados pelos botoes do teclado
         
@@ -68,16 +54,6 @@ class Scene01 extends Phaser.Scene{
             }
         })
 
-        this.anims.create({
-            key:'spin',
-            frames: this.anims.generateFrameNumbers('coin', {
-                start:0,
-                end:6
-            }),
-            frameRate: 20,
-            repeat: -1,
-        })
-
         this.coins.children.iterate((coin)=>{
             coin.setBounceY(
                 Phaser.Math.FloatBetween(.5,.8) //valores aleatorios dentro de um intervalo
@@ -85,11 +61,24 @@ class Scene01 extends Phaser.Scene{
             coin.anims.play('spin')
         })
 
+        this.enemies = this.physics.add.group()
+        let enemy = this.enemies.create(
+            Phaser.Math.Between(50,950), 0 , 'enemy'
+        ).setBounce(1)
+        .setCollideWorldBounds(true)
+        .setVelocity((Math.random() < .5 ? -200 : 200), 50)
+        .setScale(.2)
+
 
         this.physics.add.collider(this.player, this.platforms) //calcula as colisoes
         this.physics.add.collider(this.player, this.movingPlatforms, this.platformMovingThings) //ultimo parametro -> ação a ser executada quando houver a colisão
         this.physics.add.collider(this.coins, this.platforms)
         this.physics.add.collider(this.coins, this.movingPlatforms, this.platformMovingThings)
+        this.physics.add.collider(this.enemies, this.platforms)
+        this.physics.add.collider(this.enemies, this.movingPlatforms, this.platformMovingThings)
+        this.physics.add.collider(this.player,this.enemies, this.enemyHit, null, this)
+
+
 
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this) //null -> função que retorna true or false para saber se collectCoin é pra ser executada
 
@@ -108,41 +97,42 @@ class Scene01 extends Phaser.Scene{
         .setScrollFactor(0) //fixa o placar na tela (percentural de movimentação)
         this.setScore()
 
-
+        this.gameOver = false
     } 
     update(){ //onde será criada a dinamica e regras do jogo
-        if(this.control.left.isDown){
-            this.player.flipX = true //reverte horizontalmente a imagem
-            this.player.anims.play('walk', true) //true -> animaçao deve ser executada mesmo se outro evento estiver acontecendo com esse objeto
-            this.player.setVelocityX(-450)
-        }
-        else if(this.control.right.isDown){
-            this.player.flipX = false
-            this.player.anims.play('walk',true)
-            this.player.setVelocityX(450)
-        }
-        else{
-            this.player.setVelocityX(0)
-            this.player.setFrame(0) //deixa parado
-        }
+        if(!this.gameOver){    
+            if(this.control.left.isDown){
+                this.player.flipX = true //reverte horizontalmente a imagem
+                this.player.anims.play('walk', true) //true -> animaçao deve ser executada mesmo se outro evento estiver acontecendo com esse objeto
+                this.player.setVelocityX(-450)
+            }
+            else if(this.control.right.isDown){
+                this.player.flipX = false
+                this.player.anims.play('walk',true)
+                this.player.setVelocityX(450)
+            }
+            else{
+                this.player.setVelocityX(0)
+                this.player.setFrame(0) //deixa parado
+            }
 
-        if(this.control.up.isDown && this.player.canJump && this.player.body.touching.down){
-            this.player.setVelocityY(-500)
-            this.player.canJump = false
-        }
-        else if(!this.control.up.isDown && !this.player.canJump && this.player.body.touching.down){
-            this.player.canJump = true
-        }
+            if(this.control.up.isDown && this.player.canJump && this.player.body.touching.down){
+                this.player.setVelocityY(-500)
+                this.player.canJump = false
+            }
+            else if(!this.control.up.isDown && !this.player.canJump && this.player.body.touching.down){
+                this.player.canJump = true
+            }
 
-        if(!this.player.body.touching.down){//ou está pulando ou está caindo
-            this.player.setFrame(
-                this.player.body.velocity.y < 0 ? 1 : 3
-            )
-        }
+            if(!this.player.body.touching.down){//ou está pulando ou está caindo
+                this.player.setFrame(
+                    this.player.body.velocity.y < 0 ? 1 : 3
+                )
+            }
 
-        this.movingPlatforms.children.iterate((platform) =>{//move todas as plataformas do grupo
-            this.movePlatform(platform)
-        }) 
+            this.movingPlatforms.children.iterate((platform) =>{//move todas as plataformas do grupo
+                this.movePlatform(platform)
+            }) }
         
     }
 
@@ -165,5 +155,33 @@ class Scene01 extends Phaser.Scene{
 
     setScore(){
         this.scoreText.setText(this.score > 9 ? `SCORE: ${this.score}` : `SCORE: 0${this.score}`)
+    }
+
+    enemyHit(player, enemy){
+        this.physics.pause() //congela os eventos físicos
+
+        player.setTint(0xff0000) //coloração vermelha por cima da imagem da player
+        player.anims.stop() //para a animação do player
+        this.gameOver = true
+
+        setTimeout(()=>{
+            this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER :(', {fontSize: '50px'})
+            .setOrigin(.5)
+            .setShadow(0,0, '#000', 3)
+            .setScrollFactor(0)
+
+            setTimeout(()=>{
+            
+                this.add.text(game.config.width/2, game.config.height/2 + 100, 'PRESS ENTER', {fontSize: '32px'})
+                .setOrigin(.5)
+                .setShadow(0,0, '#000', 3)
+                .setScrollFactor(0)
+    
+                this.input.keyboard.addKey('enter')
+                .on('down', ()=>{
+                    this.scene.start('Scene01')
+                })
+            },1000)
+        },1000)
     }
 }
